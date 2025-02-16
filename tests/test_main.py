@@ -1,5 +1,5 @@
-import pytest
-from main import Dictionary, Word, load_known_lemmas, save_known_lemma, get_unknown_words, get_lemmas_from_text
+from main import Dictionary, Word, LemmaFileStorage
+
 
 def test_get_lemma():
     word = Word("running")
@@ -8,28 +8,32 @@ def test_get_lemma():
 def test_add_word_to_dictionary():
     dictionary = Dictionary()
     word = Word("running")
-    dictionary.add(word)
+    dictionary._add_word(word)
     assert len(dictionary.words) == 1
     assert dictionary.words[0].lemma == "run"
 
 def test_save_load_known_lemmas():
     lemma = "run"
     file_path = "/tmp/test_known_lemmas.txt"
-    save_known_lemma(lemma, file_path)
-    known_lemmas = load_known_lemmas(file_path)
+    l_store = LemmaFileStorage(file_path)
+    l_store.save(lemma)
+    known_lemmas = l_store.load_lines_to_set()
     assert "run" in known_lemmas
 
 def test_get_unknown_words():
     dictionary = Dictionary()
-    dictionary.add(Word("running"))
-    dictionary.add(Word("burning"))
+    dictionary._add_word(Word("running"))
+    dictionary._add_word(Word("burning"))
     known_lemmas = {"run"}
-    unknown_words = get_unknown_words(dictionary, known_lemmas)
+    words = [word for word in dictionary if word.lemma not in known_lemmas]
+    # group by lemma
+    unknown_words = words
     assert unknown_words == [Word("burning")]
 
 def test_get_lemmas_from_text():
     text = "I am running in the park."
-    dictionary = get_lemmas_from_text(text)
+    dictionary = Dictionary()
+    dictionary.import_raw_text(text)
     assert len(dictionary.words) == 6
     assert dictionary.words[0].lemma == "i"
     assert dictionary.words[1].lemma == "be"
