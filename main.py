@@ -5,14 +5,14 @@ import string
 
 class Word:
     def __init__(self, word: str):
-        self.word = word
         self.lemma = self.get_lemma(word)
+        self.known_variants = {word}
 
     def __str__(self):
-        return f"{self.word} ({self.lemma})"
+        return f"{self.lemma} ({', '.join(self.known_variants)})"
 
     def __repr__(self):
-        return f"Word({self.word}, {self.lemma})"
+        return f"{self.lemma} ({', '.join(self.known_variants)})"
 
     def __eq__(self, other):
         return self.lemma == other.lemma
@@ -34,6 +34,28 @@ class Word:
             pos = "n"
         return lemmatizer.lemmatize(word, pos=pos)
 
+class Dictionary:
+    def __init__(self):
+        self.words = []
+
+    def add(self, word: Word):
+        for i, w in enumerate(self.words):
+            if word == w:
+                self.words[i].known_variants = w.known_variants.union(word.known_variants)
+                return
+        self.words.append(word)
+
+    def __iter__(self):
+        return iter(self.words)
+
+    def __str__(self):
+        return ", ".join(str(word.lemma) for word in self.words)
+
+    def __repr__(self):
+        return f"WordSet({self.words})"
+
+    def __eq__(self, other):
+        return self.words == other.words
 
 def load_known_lemmas(filename="known_lemmas.txt"):
     """Wczytuje znane słowa z pliku."""
@@ -48,20 +70,18 @@ def save_known_lemma(lemma, filename="known_lemmas.txt"):
     with open(filename, "a", encoding="utf-8") as file:
         file.write(lemma + "\n")
 
-def get_unknown_lemmas(lemmas_grouped: dict[str, list[str]], known_lemmas: set[str]) -> list[tuple[str,list[str]]]:
-    unknown_lemmas = [(lemma, orig_words_dict) for lemma, orig_words_dict in lemmas_grouped.items() if lemma not in known_lemmas]
+def get_unknown_words(word_set: Dictionary, known_lemmas: set[str]) -> list[Word]:
+    unknown_words = [word for word in word_set if word.lemma not in known_lemmas]
     # group by lemma
-    return unknown_lemmas
+    return unknown_words
 
-def get_lemmas_from_text(text: str) -> dict[str, set[str]]:
+def get_lemmas_from_text(text: str) -> Dictionary:
     words = word_tokenize(text.lower())
-    lemmas_from_text = [(get_lemma(word), {word}) for word in words if word.isalpha()]
-    lemmas_grouped = {}
-    for lemma, word_set in lemmas_from_text:
-        if lemma not in lemmas_grouped:
-            lemmas_grouped[lemma] = set()
-        lemmas_grouped[lemma] = lemmas_grouped[lemma].union(word_set)
-    return lemmas_grouped
+    words_from_text = [Word(word) for word in words if word.isalpha()]
+    words_grouped: Dictionary = Dictionary()
+    for word in words_from_text:
+        words_grouped.add(word)
+    return words_grouped
 
 
 if __name__ == "__main__":
@@ -83,18 +103,17 @@ if __name__ == "__main__":
     She has grown old, but she is still very strong. She cooks the best food! 
     """
 
-    lemmas_from_text = get_lemmas_from_text(text)
+    word_set: Dictionary = get_lemmas_from_text(text)
     # print(lemmas_from_text)
-    known_lemmas = load_known_lemmas()
-    unknown_lemmas = get_unknown_lemmas(lemmas_from_text, known_lemmas)
+    known_lemmas: set[str] = load_known_lemmas()
+    unknown_lemmas: list[Word] = get_unknown_words(word_set, known_lemmas)
     print(f"Rozpoznane nieznane słowa: {unknown_lemmas}")
-    saved_lemmas = []
-    for lemma, orig_words_dict in unknown_lemmas:
-        save = input(f"Czy chcesz dodać '{lemma}' do znanych słów (orig={', '.join(orig_words_dict)})? (tak/nie/exit): ")
+    saved_lemmas: list[str] = []
+    for word in unknown_lemmas:
+        save: str = input(f"Czy chcesz dodać '{word.lemma}' do znanych słów (orig={', '.join(word.known_variants)})? (tak/nie/exit): ")
         if save.lower() == "tak":
-            for word in orig_words_dict:
-                saved_lemmas.append(lemma)
-                save_known_lemma(lemma)
+            saved_lemmas.append(word.lemma)
+            save_known_lemma(word.lemma)
         elif save.lower() == "exit":
             break
         else:
