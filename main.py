@@ -1,24 +1,29 @@
+from typing import Iterator
+
 import nltk
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 import string
+# from typing import List, Set
 
 class Word:
     def __init__(self, word: str):
         self.lemma = self.get_lemma(word)
         self.known_variants = {word}
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.lemma} ({', '.join(self.known_variants)})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.lemma} ({', '.join(self.known_variants)})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Word):
+            return NotImplemented
         return self.lemma == other.lemma
 
     @staticmethod
-    def get_lemma(word):
+    def get_lemma(word: str) -> str:
         """Zwraca formę podstawową słowa."""
         lemmatizer = WordNetLemmatizer()
         tag = nltk.pos_tag([word])[0][1]
@@ -35,29 +40,31 @@ class Word:
         return lemmatizer.lemmatize(word, pos=pos)
 
 class Dictionary:
-    def __init__(self):
-        self.words = []
+    def __init__(self) -> None:
+        self.words: list[Word] = []
 
-    def add(self, word: Word):
+    def add(self, word: Word) -> None:
         for i, w in enumerate(self.words):
             if word == w:
                 self.words[i].known_variants = w.known_variants.union(word.known_variants)
                 return
         self.words.append(word)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Word]:
         return iter(self.words)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ", ".join(str(word.lemma) for word in self.words)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"WordSet({self.words})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Dictionary):
+            return NotImplemented
         return self.words == other.words
 
-def load_known_lemmas(filename="known_lemmas.txt"):
+def load_known_lemmas(filename: str = "known_lemmas.txt") -> set[str]:
     """Wczytuje znane słowa z pliku."""
     try:
         with open(filename, "r", encoding="utf-8") as file:
@@ -65,7 +72,7 @@ def load_known_lemmas(filename="known_lemmas.txt"):
     except FileNotFoundError:
         return set()
 
-def save_known_lemma(lemma, filename="known_lemmas.txt"):
+def save_known_lemma(lemma: str, filename: str = "known_lemmas.txt") -> None:
     """Dodaje nowe słowo do bazy znanych słów."""
     with open(filename, "a", encoding="utf-8") as file:
         file.write(lemma + "\n")
@@ -96,11 +103,11 @@ if __name__ == "__main__":
     # print(get_lemma('better'))
 
     text = """
-    I live in a houses near the mountains. I have two brothers and one sister, and I was born last. 
-    My father teaches mathematics, and my mother is a nurse at a big hospital. 
-    My brothers are very smart and work hard in school. My sister is a nervous girl, but she is very kind. 
-    My grandmother also lives with us. She came from Italy when I was two years old. 
-    She has grown old, but she is still very strong. She cooks the best food! 
+    I live in a houses near the mountains. I have two brothers and one sister, and I was born last.
+    My father teaches mathematics, and my mother is a nurse at a big hospital.
+    My brothers are very smart and work hard in school. My sister is a nervous girl, but she is very kind.
+    My grandmother also lives with us. She came from Italy when I was two years old.
+    She has grown old, but she is still very strong. She cooks the best food!
     """
 
     word_set: Dictionary = get_lemmas_from_text(text)
@@ -121,4 +128,3 @@ if __name__ == "__main__":
 
     print(f"Dodano do listy znanych słów: {', '.join(saved_lemmas)}")
     print(f"Pozostało do nauki: {len(unknown_lemmas) - len(saved_lemmas)}")
-
