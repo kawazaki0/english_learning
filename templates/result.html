@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Processed Text</title>
+    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
+</head>
+<body>
+{% for l in unknown_lemmas %}
+<div>{{ l }}
+    <a href="#" hx-get="/add_as_known/{{ l }}" hx-target="this" hx-swap="outerHTML" onclick="return false;">I know</a> |
+    <a href="#" hx-get="/add_to_learn/{{ l }}" hx-target="this" hx-swap="outerHTML" onclick="return false;">to learn</a>
+</div>
+{% endfor %}
+<br>
+<div>
+    {% for l in recognized_lemmas %}
+    {{ l }}
+    {% endfor %}
+</div>
+<br>
+<a href="/">Back</a>
+</body>
+</html>
