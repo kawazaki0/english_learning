@@ -1,4 +1,6 @@
-from main import Dictionary, Word, LemmaFileStorage
+from app.lemma_file_storage import LemmaFileStorage
+from app.dictionary import Dictionary
+from app.word import Word
 
 
 def test_get_lemma():
